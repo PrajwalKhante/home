@@ -64,3 +64,79 @@ form button {
     color: white;
     cursor: pointer;
 }
+
+/* Scan Details and Results Page Styling */
+.scan-details {
+    background-color: #eee;
+    padding: 1em;
+    border-radius: 5px;
+    line-height: 1.5;
+}
+
+.button {
+    display: inline-block;
+    padding: 0.5em 1em;
+    background-color: #333;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-top: 1em;
+}
+
+.vulnerability-list {
+    margin-top: 1em;
+}
+
+.vulnerability {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 1em;
+}
+
+.vulnerability summary {
+    padding: 1em;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.vulnerability summary .vuln-type {
+    display: inline-block;
+    background-color: #dc3545;
+    color: white;
+    padding: 0.2em 0.5em;
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
+.vulnerability summary .vuln-url {
+    margin-left: 1em;
+    font-family: monospace;
+}
+
+.vulnerability summary .vuln-confidence {
+    float: right;
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.vuln-details {
+    padding: 1em;
+    background-color: #fff;
+    border-top: 1px solid #ccc;
+}
+
+.vuln-details p {
+    margin: 0.5em 0;
+}
+
+.vuln-details pre {
+    background-color: #eee;
+    padding: 1em;
+    border-radius: 5px;
+    white-space: pre-wrap;       /* Since CSS 2.1 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
+}
