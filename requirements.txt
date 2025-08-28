@@ -2,3 +2,7 @@ requests
 beautifulsoup4
 llm
 llm-anthropic
+Flask
+Flask-Login
+werkzeug
+Flask-SQLAlchemy

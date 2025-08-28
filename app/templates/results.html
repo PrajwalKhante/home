@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Results for {{ scan.target_url }}{% endblock %}
+
+{% block content %}
+  <h2>Scan Results</h2>
+
+  <div>
+    <strong>ID:</strong> {{ scan.id }}<br>
+    <strong>URL:</strong> {{ scan.target_url }}<br>
+    <strong>Status:</strong> {{ scan.status }}<br>
+    <strong>Timestamp:</strong> {{ scan.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}<br>
+    <strong>Tests Run:</strong> {{ scan.tests_run }}<br>
+    <a href="{{ url_for('download_report', scan_id=scan.id) }}">Download CSV Report</a>
+  </div>
+
+  <hr style="margin-top: 2em; margin-bottom: 2em;">
+
+  <h3>Vulnerabilities Found</h3>
+  {% if vulnerabilities %}
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>URL</th>
+          <th>Payload</th>
+          <th>Confidence</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vuln in vulnerabilities %}
+          <tr>
+            <td>{{ vuln.type }}</td>
+            <td>{{ vuln.url }}</td>
+            <td><code>{{ vuln.payload }}</code></td>
+            <td>{{ vuln.confidence }}</td>
+            <td>{{ vuln.reason }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No vulnerabilities were found in this scan.</p>
+  {% endif %}
+
+  <p><a href="{{ url_for('dashboard') }}">Back to Dashboard</a></p>
+
+{% endblock %}
