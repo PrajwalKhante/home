@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 import re
 
 # --- Local LLM Setup ---
-MODEL_NAME = "mistral-7b-instruct-v0.2-code-ft.Q4_K_M.gguf"
+MODEL_NAME = "phi-3-mini-4k-instruct.Q4_K_M.gguf"
 MODEL_PATH = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')), MODEL_NAME)
 
 llm = None
