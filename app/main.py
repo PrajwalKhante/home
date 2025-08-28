@@ -3,18 +3,15 @@ import sys
 import datetime
 import threading
 import json
-import io
-import csv
-from flask import Flask, render_template, redirect, url_for, request, flash, send_file
+import re
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from cryptography.fernet import Fernet
 
-# --- App Setup ---
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.scanner import scan_website
-from lib.analyzer import analyze_endpoints
+from lib.analyzer import analyze_endpoints, llm as analyzer_llm
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -22,48 +19,21 @@ db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'app.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- Encryption Setup ---
-# In a real app, this key should be loaded securely from the environment or a secret manager
-# For simplicity, we'll generate it if it doesn't exist.
-key_file = 'secret.key'
-if not os.path.exists(key_file):
-    key = Fernet.generate_key()
-    with open(key_file, 'wb') as f:
-        f.write(key)
-else:
-    with open(key_file, 'rb') as f:
-        key = f.read()
-cipher_suite = Fernet(key)
-
-# --- Database and Login Manager ---
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# --- Models ---
+# Models
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(256))
     scans = db.relationship('Scan', backref='user', lazy=True)
-    encrypted_api_key = db.Column(db.LargeBinary)
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def set_api_key(self, api_key):
-        self.encrypted_api_key = cipher_suite.encrypt(api_key.encode())
-
-    def get_api_key(self):
-        if self.encrypted_api_key:
-            return cipher_suite.decrypt(self.encrypted_api_key).decode()
-        return None
+    def set_password(self, password): self.password_hash = generate_password_hash(password)
+    def check_password(self, password): return check_password_hash(self.password_hash, password)
 
 class Scan(db.Model):
-    # ... (model is unchanged)
     id = db.Column(db.Integer, primary_key=True)
     target_url = db.Column(db.String(200), nullable=False)
     max_pages = db.Column(db.Integer, default=20)
@@ -73,50 +43,105 @@ class Scan(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     results = db.Column(db.Text, nullable=True)
 
-
 @login_manager.user_loader
-def load_user(user_id):
-    return db.session.get(User, int(user_id))
+def load_user(user_id): return db.session.get(User, int(user_id))
 
-# --- Background Scan Function ---
-def run_scan_in_background(app_context, scan_id, api_key):
+# --- Chatbot AI Engine ---
+def get_chatbot_response(user_message):
+    if not analyzer_llm:
+        return "The local AI model is not loaded. Please follow the instructions in INSTRUCTIONS.md."
+
+    # Use the LLM to understand the user's intent
+    prompt = f"""[INST] You are the brain of a cybersecurity chatbot. A user sent you a message.
+    Your job is to understand their intent and extract relevant information.
+    The user's message is: "{user_message}"
+
+    Possible intents are: 'start_scan', 'ask_question', 'show_history', 'greet', 'unknown'.
+    If the intent is 'start_scan', you must extract the 'url' and optionally the number of 'pages'.
+
+    Respond with a single line of JSON. For example:
+    {{"intent": "start_scan", "url": "http://example.com", "pages": 10}}
+    {{"intent": "ask_question", "question": "What is SQL injection?"}}
+    {{"intent": "show_history"}}
+    {{"intent": "greet"}} [/INST]
+    """
+
+    try:
+        output = analyzer_llm(prompt, max_tokens=128, stop=["[INST]"], temperature=0.1)
+        response_text = output["choices"][0]["text"]
+        parsed_json = json.loads(response_text)
+        intent = parsed_json.get("intent")
+
+        if intent == "start_scan":
+            url = parsed_json.get("url")
+            if not url: return "You asked me to start a scan, but did not provide a URL."
+            pages = parsed_json.get("pages", 10)
+
+            new_scan = Scan(target_url=url, max_pages=pages, tests_run="sql,xss", user_id=current_user.id)
+            db.session.add(new_scan); db.session.commit()
+            threading.Thread(target=run_scan_in_background, args=(app.app_context(), new_scan.id)).start()
+            return f"Scan started for {url} (ID: {new_scan.id}). I'll let you know when it's done. You can also ask for the results of a scan by its ID."
+
+        elif intent == "show_history":
+            scans = Scan.query.filter_by(user_id=current_user.id).order_by(Scan.timestamp.desc()).limit(5).all()
+            if not scans: return "You have no previous scans."
+            response = "Here are your 5 most recent scans:\n"
+            for s in scans:
+                response += f"- ID: {s.id}, URL: {s.target_url}, Status: {s.status}\n"
+            return response
+
+        elif intent == "ask_question":
+            question = parsed_json.get("question", user_message)
+            answer_prompt = f"[INST] As a cybersecurity expert, answer the following question in a helpful and concise way: {question} [/INST]"
+            answer_output = analyzer_llm(answer_prompt, max_tokens=512, stop=["[INST]"])
+            return answer_output["choices"][0]["text"].strip()
+
+        elif intent == "greet":
+            return "Hello! How can I help you with your web security needs today?"
+
+        else: # unknown
+            return "I'm sorry, I'm not sure how to help with that. You can ask me to scan a website, or ask a question about web security."
+
+    except Exception as e:
+        print(f"Error in chatbot response generation: {e}")
+        return "I'm sorry, I had a problem processing your request."
+
+def run_scan_in_background(app_context, scan_id):
     with app_context:
         scan = db.session.get(Scan, scan_id)
         if not scan: return
-        print(f"Starting background scan for {scan.target_url}")
         scan.status = 'running'; db.session.commit()
         try:
             endpoints = scan_website(scan.target_url, scan.max_pages)
-            tests = scan.tests_run.split(',')
-            # Pass the API key to the analyzer
-            vulnerabilities = analyze_endpoints(endpoints, tests, api_key=api_key)
+            vulnerabilities = analyze_endpoints(endpoints, scan.tests_run.split(','))
             scan.results = json.dumps(vulnerabilities)
             scan.status = 'completed'
         except Exception as e:
-            print(f"Error during scan: {e}"); scan.status = 'failed'
-            scan.results = json.dumps([{"error": str(e)}])
+            scan.status = 'failed'; scan.results = json.dumps([{"error": str(e)}])
         db.session.commit()
-        print(f"Scan {scan.id} finished with status: {scan.status}")
+        # In a real-world app, we'd use WebSockets or another method to push this notification.
+        print(f"Scan {scan.id} for {scan.target_url} is complete!")
 
 # --- Routes ---
 @app.route('/')
 def index():
-    return render_template('base.html')
+    if current_user.is_authenticated:
+        return redirect(url_for('chat'))
+    return render_template('login.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated: return redirect(url_for('dashboard'))
+    if current_user.is_authenticated: return redirect(url_for('chat'))
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
         if user and user.check_password(request.form['password']):
-            login_user(user, remember=True)
-            return redirect(url_for('dashboard'))
+            login_user(user, remember=True); return redirect(url_for('chat'))
         else: flash('Invalid username or password')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated: return redirect(url_for('dashboard'))
+    if current_user.is_authenticated: return redirect(url_for('chat'))
     if request.method == 'POST':
         if User.query.filter_by(username=request.form['username']).first():
             flash('Username already exists')
@@ -124,78 +149,51 @@ def register():
             new_user = User(username=request.form['username'])
             new_user.set_password(request.form['password'])
             db.session.add(new_user); db.session.commit()
-            login_user(new_user)
-            return redirect(url_for('dashboard'))
+            login_user(new_user); return redirect(url_for('chat'))
     return render_template('register.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('index'))
+    return redirect(url_for('login'))
 
-@app.route('/dashboard', methods=['GET', 'POST'])
+@app.route('/chat')
 @login_required
-def dashboard():
-    if request.method == 'POST':
-        new_scan = Scan(target_url=request.form['url'], max_pages=int(request.form['max_pages']),
-                        tests_run=",".join(request.form.getlist('tests')), user_id=current_user.id)
-        db.session.add(new_scan); db.session.commit()
+def chat():
+    return render_template('chat.html')
 
-        api_key = current_user.get_api_key()
-        if not api_key:
-            flash("API key not set. Confidence scoring will be skipped. Please add your key in Settings.", "warning")
-
-        threading.Thread(target=run_scan_in_background, args=(app.app_context(), new_scan.id, api_key)).start()
-        flash(f'Scan started for {new_scan.target_url}. Results will appear here when complete.')
-        return redirect(url_for('dashboard'))
-    scans = Scan.query.filter_by(user_id=current_user.id).order_by(Scan.timestamp.desc()).all()
-    return render_template('dashboard.html', scans=scans)
-
-@app.route('/settings', methods=['GET', 'POST'])
+@app.route('/send_message', methods=['POST'])
 @login_required
-def settings():
-    if request.method == 'POST':
-        api_key = request.form.get('api_key')
-        if api_key:
-            current_user.set_api_key(api_key)
-            db.session.commit()
-            flash('API key updated successfully!', 'success')
+def send_message():
+    user_message = request.json['message']
+
+    # Check for a specific command to get scan results
+    match = re.match(r"show me scan (\d+)", user_message.lower())
+    if match:
+        scan_id = int(match.group(1))
+        scan = db.session.get(Scan, scan_id)
+        if not scan or scan.user_id != current_user.id:
+            response = "Sorry, I can't find that scan or you don't have permission to view it."
+        elif scan.status != 'completed':
+            response = f"Scan {scan.id} is still in progress (status: {scan.status}). Please check back later."
         else:
-            flash('API key cannot be empty.', 'warning')
-        return redirect(url_for('settings'))
-    return render_template('settings.html')
+            vulnerabilities = json.loads(scan.results)
+            if not vulnerabilities:
+                response = f"Scan {scan.id} for {scan.target_url} completed with no vulnerabilities found."
+            else:
+                response = f"Results for scan {scan.id} ({scan.target_url}):\n\n"
+                for vuln in vulnerabilities:
+                    response += f"--- VULNERABILITY: {vuln['type']} ---\n"
+                    response += f"URL: {vuln['url']}\n"
+                    response += f"Confidence: {vuln['confidence']}\n\n"
+                    response += f"Explanation: {vuln['explanation']}\n\n"
+                    response += f"Impact: {vuln['impact']}\n\n"
+                    response += f"Remediation: {vuln['remediation']}\n\n"
+    else:
+        response = get_chatbot_response(user_message)
 
-@app.route('/scan/<int:scan_id>')
-@login_required
-def scan_results(scan_id):
-    scan = db.session.get(Scan, scan_id)
-    if not scan or scan.user_id != current_user.id:
-        flash("Scan not found or you don't have permission to view it.")
-        return redirect(url_for('dashboard'))
-    vulnerabilities = json.loads(scan.results) if scan.results else []
-    return render_template('results.html', scan=scan, vulnerabilities=vulnerabilities)
-
-@app.route('/scan/<int:scan_id>/download')
-@login_required
-def download_report(scan_id):
-    # ... (route is unchanged)
-    scan = db.session.get(Scan, scan_id)
-    if not scan or scan.user_id != current_user.id:
-        flash("Scan not found or you don't have permission to view it.")
-        return redirect(url_for('dashboard'))
-    vulnerabilities = json.loads(scan.results) if scan.results else []
-    if not vulnerabilities:
-        flash("No vulnerabilities to report for this scan.")
-        return redirect(url_for('scan_results', scan_id=scan_id))
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=vulnerabilities[0].keys())
-    writer.writeheader()
-    writer.writerows(vulnerabilities)
-    mem_file = io.BytesIO()
-    mem_file.write(output.getvalue().encode('utf-8'))
-    mem_file.seek(0)
-    return send_file(mem_file, as_attachment=True, download_name=f'scan_{scan_id}_report.csv', mimetype='text/csv')
+    return jsonify({'response': response})
 
 def init_db():
     with app.app_context():

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with your AI Security Agent{% endblock %}
+
+{% block content %}
+<div id="chat-container">
+    <div id="chat-window">
+        <div class="message agent-message">
+            <p>Hello, {{ current_user.username }}! I am your AI Security Agent. How can I help you today? You can ask me to scan a website, or ask me a question about web security.</p>
+            <p>For example: <code>Scan http://testphp.vulnweb.com with 5 pages</code></p>
+        </div>
+    </div>
+    <form id="chat-form">
+        <input type="text" id="message-input" placeholder="Send a message..." autocomplete="off">
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('chat-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        const chatWindow = document.getElementById('chat-window');
+
+        // Display user message
+        const userMessageDiv = document.createElement('div');
+        userMessageDiv.classList.add('message', 'user-message');
+        userMessageDiv.innerHTML = `<p>${message}</p>`;
+        chatWindow.appendChild(userMessageDiv);
+
+        messageInput.value = '';
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        // Display thinking indicator
+        const thinkingDiv = document.createElement('div');
+        thinkingDiv.classList.add('message', 'agent-message', 'thinking');
+        thinkingDiv.innerHTML = `<p><i>Thinking...</i></p>`;
+        chatWindow.appendChild(thinkingDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        // Send message to backend
+        const response = await fetch('/send_message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message }),
+        });
+
+        const data = await response.json();
+        const agentResponse = data.response;
+
+        // Remove thinking indicator
+        chatWindow.removeChild(thinkingDiv);
+
+        // Display agent response
+        const agentMessageDiv = document.createElement('div');
+        agentMessageDiv.classList.add('message', 'agent-message');
+        // Use a <pre> tag to preserve formatting from the agent's response
+        agentMessageDiv.innerHTML = `<pre>${agentResponse}</pre>`;
+        chatWindow.appendChild(agentMessageDiv);
+
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+</script>
+{% endblock %}

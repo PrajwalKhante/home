@@ -1,28 +1,39 @@
 import os
 import requests
-import llm
-import re
+from llama_cpp import Llama
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+import re
 
-def get_vulnerability_details(response_text, vulnerability_type, api_key):
+# --- Local LLM Setup ---
+MODEL_NAME = "mistral-7b-instruct-v0.2-code-ft.Q4_K_M.gguf"
+MODEL_PATH = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')), MODEL_NAME)
+
+llm = None
+if os.path.exists(MODEL_PATH):
+    try:
+        llm = Llama(model_path=MODEL_PATH, n_ctx=4096, verbose=False)
+    except Exception as e:
+        print(f"Error loading local LLM model: {e}")
+        print("AI analysis will be disabled.")
+else:
+    print(f"Model file not found at {MODEL_PATH}. AI analysis will be disabled.")
+    print("Please follow the instructions in INSTRUCTIONS.md to download the model.")
+
+def get_vulnerability_details(response_text, vulnerability_type):
     """
-    Uses an LLM to analyze the response text and provide detailed information.
+    Uses a local LLM to analyze the response text and provide detailed information.
     """
-    if not api_key:
+    if not llm:
         return {
             "confidence": "N/A",
-            "explanation": "API key not provided.",
+            "explanation": "Local LLM not loaded. Please see INSTRUCTIONS.md.",
             "impact": "N/A",
             "remediation": "N/A"
         }
 
     try:
-        model = llm.get_model("claude-3-haiku")
-        model.key = api_key
-
-        prompt = f"""
-        You are a senior web security expert. Analyze the following server response which was triggered by a '{vulnerability_type}' payload.
+        prompt = f"""[INST] You are a senior web security expert. Analyze the following server response which was triggered by a '{vulnerability_type}' payload.
 
         Server Response (first 2000 chars):
         ---
@@ -34,12 +45,12 @@ def get_vulnerability_details(response_text, vulnerability_type, api_key):
         Confidence: [One of: low, medium, high]
         Explanation: [A detailed, 2-3 sentence explanation of why this response suggests a vulnerability.]
         Impact: [A 1-2 sentence description of the potential business or security impact.]
-        Remediation: [A brief, actionable, step-by-step guide on how to fix this vulnerability.]
+        Remediation: [A brief, actionable, step-by-step guide on how to fix this vulnerability.] [/INST]
         """
-        response = model.prompt(prompt)
 
-        # Use regex to parse the more complex response from the LLM
-        text = response.text()
+        output = llm(prompt, max_tokens=512, stop=["[INST]"], temperature=0.7)
+        text = output["choices"][0]["text"]
+
         confidence = re.search(r"Confidence: (.*)", text)
         explanation = re.search(r"Explanation: (.*)", text, re.DOTALL)
         impact = re.search(r"Impact: (.*)", text, re.DOTALL)
@@ -90,7 +101,7 @@ def submit_form(form_details, url, payload):
     else:
         return requests.get(target_url, params=data, timeout=10)
 
-def analyze_for_sql_injection(endpoints, api_key):
+def analyze_for_sql_injection(endpoints):
     vulnerabilities = []
     sql_payloads = ["'", "1' OR '1'='1"]
     for url in endpoints:
@@ -101,7 +112,7 @@ def analyze_for_sql_injection(endpoints, api_key):
                     response = submit_form(form_details, url, payload)
                     error_patterns = ["sql", "syntax error", "unclosed quotation mark", "mysql"]
                     if any(error in response.text.lower() for error in error_patterns):
-                        details = get_vulnerability_details(response.text, "SQL Injection", api_key)
+                        details = get_vulnerability_details(response.text, "SQL Injection")
                         vulnerabilities.append({
                             "type": "SQL Injection", "url": url, "form_action": form_details["action"],
                             "payload": payload, **details
@@ -109,7 +120,7 @@ def analyze_for_sql_injection(endpoints, api_key):
                 except requests.RequestException: pass
     return vulnerabilities
 
-def analyze_for_xss(endpoints, api_key):
+def analyze_for_xss(endpoints):
     vulnerabilities = []
     xss_payloads = ["<script>alert('XSS')</script>", "'\"><script>alert('XSS')</script>"]
     for url in endpoints:
@@ -119,7 +130,7 @@ def analyze_for_xss(endpoints, api_key):
                 try:
                     response = submit_form(form_details, url, payload)
                     if payload in response.text:
-                        details = get_vulnerability_details(response.text, "XSS", api_key)
+                        details = get_vulnerability_details(response.text, "XSS")
                         vulnerabilities.append({
                             "type": "XSS", "url": url, "form_action": form_details["action"],
                             "payload": payload, **details
@@ -127,12 +138,12 @@ def analyze_for_xss(endpoints, api_key):
                 except requests.RequestException: pass
     return vulnerabilities
 
-def analyze_endpoints(endpoints, tests_to_run, api_key=None):
+def analyze_endpoints(endpoints, tests_to_run):
     vulnerabilities = []
     if "sql" in tests_to_run:
         print("Analyzing for SQL Injection...")
-        vulnerabilities.extend(analyze_for_sql_injection(endpoints, api_key))
+        vulnerabilities.extend(analyze_for_sql_injection(endpoints))
     if "xss" in tests_to_run:
         print("Analyzing for XSS...")
-        vulnerabilities.extend(analyze_for_xss(endpoints, api_key))
+        vulnerabilities.extend(analyze_for_xss(endpoints))
     return vulnerabilities
