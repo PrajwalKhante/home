@@ -1,0 +1,25 @@
+# Core ML & Data Processing
+pandas
+numpy
+scikit-learn
+joblib
+tqdm
+
+# Deep Learning - Transformer
+torch
+transformers
+datasets
+
+# Web Scraping & ETL
+requests
+beautifulsoup4
+
+# Flask Web Application
+flask
+
+# Reinforcement Learning
+gym
+stable-baselines3[extra]
+
+# Notebook
+jupyter
